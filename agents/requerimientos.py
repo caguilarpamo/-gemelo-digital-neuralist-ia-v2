@@ -1,15 +1,7 @@
 # agents/requerimientos.py
 from core.base_agent import BaseAgent
 
-PROMPT = """
-Eres un experto en requerimientos funcionales financieros.
-
-Genera:
-1. Historias de usuario
-2. Reglas de negocio financieras
-
-Recuerda entregar solo textos claros y estructurados.
-"""
+PROMPT = """Experto en requerimientos financieros. Devuelve Markdown con `## Historias` (3-6 en formato "Como X, quiero Y, para Z") y `## Reglas` (reglas de negocio). Sin código."""
 
 class RequerimientosAgent(BaseAgent):
 

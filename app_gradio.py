@@ -62,196 +62,89 @@
 # if __name__ == "__main__":
 #     app.launch(share=True)
 
+import re
+from pathlib import Path
 
-###funcional
-# import gradio as gr
-# from graph.workflow import ejecutar_flujo
-
-# def procesar_requerimiento(texto):
-#     resultado = ejecutar_flujo(texto)
-#     return (
-#         resultado["historias"],
-#         resultado["analisis"],
-#         resultado["arquitectura"],
-#         resultado["plan_tecnico"],
-#         resultado["codigo"],
-#         resultado["qa1"],
-#         resultado["qa2"],
-#         resultado["documentacion"],
-#         resultado["despliegue"],
-#         resultado["entregable"]
-#     )
-
-# app = gr.Interface(
-#     fn=procesar_requerimiento,
-#     inputs=gr.Textbox(label="Describe tu requerimiento financiero"),
-#     outputs=[
-#         gr.Textbox(label="📜 Historias de Usuario"),
-#         gr.Textbox(label="📌 Análisis"),
-#         gr.Textbox(label="🏗️ Arquitectura"),
-#         gr.Textbox(label="📝 Plan Técnico (Líder Técnico)"),
-#         gr.Code(label="💻 Código", language="python"),
-#         gr.Textbox(label="🧪 QA1 - Validación de requerimientos"),
-#         gr.Textbox(label="🧪 QA2 - Pruebas reales"),
-#         gr.Textbox(label="📚 Documentación"),
-#         gr.Textbox(label="🚀 Despliegue"),
-#         gr.Textbox(label="🎁 Entregable final")
-#     ],
-#     title="💰 GEMELO DIGITAL FINANCIERO IA",
-#     description="Ingresa un requerimiento y genera todo el flujo financiero automatizado.",
-# )
-
-# if __name__ == "__main__":
-#     app.launch(share=True)
-
-# app_gradio.py
 import gradio as gr
 from dotenv import load_dotenv
 from graph.workflow import ejecutar_flujo
 
-load_dotenv()
+STITCH_DIR = Path("output/stitch")
+IMG_RE = re.compile(r'<img[^>]+src=["\']([^"\']+)["\']', re.IGNORECASE)
 
-# CSS personalizado (puedes ponerlo dentro de <style> o en un archivo externo)
-css = """
-    /* Fondo general con gradiente */
-    .gradio-container {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-family: 'Segoe UI', 'Inter', sans-serif;
-    }
-    /* Tarjetas de entrada/salida */
-    .card {
-        background: rgba(255,255,255,0.95);
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-        margin-bottom: 20px;
-    }
-    /* Botón principal */
-    .primary-btn {
-        background: linear-gradient(95deg, #0b4f6c 0%, #1e7e6c 100%) !important;
-        border: none !important;
-        color: white !important;
-        font-weight: bold;
-        font-size: 1.1rem;
-        padding: 12px 24px;
-        border-radius: 40px;
-        transition: transform 0.2s;
-    }
-    .primary-btn:hover {
-        transform: scale(1.02);
-        background: linear-gradient(95deg, #0a3e55 0%, #186b5c 100%) !important;
-    }
-    /* Títulos */
-    h1, h2, h3 {
-        color: #fff !important;
-        text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-    }
-    /* Etiquetas de los outputs */
-    label span {
-        font-weight: 600;
-        color: #1e2a3a;
-    }
-    /* Código */
-    .prose pre {
-        border-radius: 16px;
-        background: #1e1e2f !important;
-    }
-"""
 
-#def procesar_requerimiento(texto):
-#    resultado = ejecutar_flujo(texto)
-#    return (
-#        resultado["historias"],
-#        resultado["analisis"],
-#        resultado["arquitectura"],
-#        resultado["plan_tecnico"],
-#        resultado["codigo"],
-#        resultado["qa1"],
-#        resultado["qa2"],
-#        resultado["documentacion"],
-#        resultado["despliegue"],
-#        resultado["entregable"]
-#    )
+def _collect_frontend_visuals():
+    """Lee output/stitch/*.html y devuelve:
+       - lista de URLs de imágenes (para gr.Gallery)
+       - HTML combinado con cada pantalla en un iframe (para gr.HTML)
+    """
+    if not STITCH_DIR.exists():
+        return [], "<p><em>Aún no hay pantallas generadas. Ejecuta el flujo primero.</em></p>"
+
+    files = sorted(STITCH_DIR.glob("*.html"))
+    if not files:
+        return [], "<p><em>No se encontraron archivos HTML en output/stitch/.</em></p>"
+
+    images = []
+    sections = []
+    for f in files:
+        html = f.read_text(encoding="utf-8", errors="ignore")
+        # 1. Extraer URLs absolutas o data URIs (las relativas no resuelven en Gradio)
+        for src in IMG_RE.findall(html):
+            if src.startswith(("http://", "https://", "data:")):
+                images.append((src, f.stem))
+        # 2. Render inline vía iframe srcdoc (escapamos comillas dobles)
+        escaped = html.replace('"', "&quot;")
+        sections.append(
+            f'<h3 style="margin:1.5rem 0 0.5rem;font-family:system-ui">📱 {f.stem}</h3>'
+            f'<iframe srcdoc="{escaped}" '
+            f'style="width:100%;height:640px;border:1px solid #ddd;border-radius:8px;background:#fff"></iframe>'
+        )
+
+    return images, "\n".join(sections)
+
 
 def procesar_requerimiento(texto):
-    try:
-        resultado = ejecutar_flujo(texto)
-
-        return (
-            resultado["historias"],
-            resultado["analisis"],
-            resultado["arquitectura"],
-            resultado["plan_tecnico"],
-            resultado["codigo"],
-            resultado["qa1"],
-            resultado["qa2"],
-            resultado["documentacion"],
-            resultado["despliegue"],
-            resultado["entregable"]
-        )
-
-    except Exception as e:
-        mensaje = str(e)
-
-        # Mensaje amigable para el usuario
-        alerta = f"⚠️ {mensaje}\n\nEste sistema solo procesa requerimientos financieros."
-
-        # Retornamos vacío + mensaje en el primer tab (o donde quieras)
-        return (
-            alerta, "", "", "", "", "", "", "", "", ""
-        )
-
-# Construimos la interfaz con gr.Blocks para mayor control
-with gr.Blocks(css=css, title="Gemelo Digital Financiero IA") as app:
-    gr.Markdown("""
-    # 💰 GEMELO DIGITAL FINANCIERO IA
-    ### Ingresa un requerimiento y genera todo el flujo financiero automatizado.
-    """)
-    
-    with gr.Row():
-        with gr.Column(scale=4):
-            requerimiento = gr.Textbox(
-                label="📝 Describe tu requerimiento financiero",
-                placeholder="Ejemplo: 'Necesito una app bancaria para créditos hipotecarios con simulador de cuotas'",
-                lines=4,
-                elem_classes="card"
-            )
-        with gr.Column(scale=1):
-            # Botón personalizado
-            btn = gr.Button("🚀 Generar flujo completo", elem_classes="primary-btn")
-    
-    # Organizamos los 10 outputs en grupos visuales
-    with gr.Tabs():
-        with gr.TabItem("📋 Historias de Usuario"):
-            historias_out = gr.Textbox(label="", lines=15, elem_classes="card")
-        with gr.TabItem("📌 Análisis"):
-            analisis_out = gr.Textbox(label="", lines=15, elem_classes="card")
-        with gr.TabItem("🏗️ Arquitectura"):
-            arquitectura_out = gr.Textbox(label="", lines=15, elem_classes="card")
-        with gr.TabItem("📝 Plan Técnico"):
-            plan_out = gr.Textbox(label="", lines=15, elem_classes="card")
-        with gr.TabItem("💻 Código"):
-            codigo_out = gr.Code(label="", language="python", elem_classes="card")
-        with gr.TabItem("🧪 QA1 - Validación"):
-            qa1_out = gr.Textbox(label="", lines=10, elem_classes="card")
-        with gr.TabItem("🧪 QA2 - Pruebas"):
-            qa2_out = gr.Textbox(label="", lines=10, elem_classes="card")
-        with gr.TabItem("📚 Documentación"):
-            doc_out = gr.Textbox(label="", lines=15, elem_classes="card")
-        with gr.TabItem("🚀 Despliegue"):
-            despliegue_out = gr.Textbox(label="", lines=10, elem_classes="card")
-        with gr.TabItem("🎁 Entregable Final"):
-            entregable_out = gr.Textbox(label="", lines=10, elem_classes="card")
-    
-    # Conectar botón con la función
-    btn.click(
-        fn=procesar_requerimiento,
-        inputs=requerimiento,
-        outputs=[
-            historias_out, analisis_out, arquitectura_out, plan_out,
-            codigo_out, qa1_out, qa2_out, doc_out, despliegue_out, entregable_out
-        ]
+    resultado = ejecutar_flujo(texto)
+    images, screens_html = _collect_frontend_visuals()
+    return (
+        resultado["historias"],
+        resultado["analisis"],
+        resultado["arquitectura"],
+        resultado["plan_tecnico"],
+        resultado["frontend"],          # Markdown — texto del agente
+        images,                          # Gallery — imágenes Stitch
+        screens_html,                    # HTML — pantallas renderizadas inline
+        resultado["codigo"],
+        resultado["qa1"],
+        resultado["qa2"],                # Markdown — Nielsen
+        resultado["documentacion"],
+        resultado["despliegue"],         # Markdown — URL Vercel clickeable
+        resultado["entregable"],
     )
+
+
+app = gr.Interface(
+    fn=procesar_requerimiento,
+    inputs=gr.Textbox(label="Describe tu requerimiento financiero", lines=4),
+    outputs=[
+        gr.Textbox(label="📜 Historias de Usuario"),
+        gr.Textbox(label="📌 Análisis"),
+        gr.Textbox(label="🏗️ Arquitectura"),
+        gr.Textbox(label="📝 Plan Técnico (Líder Técnico — FE + BE)"),
+        gr.Markdown(label="🎨 Frontend (Stitch → React) — reporte del agente"),
+        gr.Gallery(label="🖼️ Mockups generados por Stitch", columns=2, height="auto"),
+        gr.HTML(label="📱 Pantallas renderizadas (preview en vivo)"),
+        gr.Code(label="💻 Código Backend", language="python"),
+        gr.Textbox(label="🧪 QA1 — Validación de requerimientos"),
+        gr.Markdown(label="🧪 QA2 — Funcional + 10 heurísticas de Nielsen"),
+        gr.Textbox(label="📚 Documentación"),
+        gr.Markdown(label="🚀 Despliegue (Vercel) — URL pública clickeable"),
+        gr.Textbox(label="🎁 Entregable final"),
+    ],
+    title="💰 GEMELO DIGITAL FINANCIERO IA",
+    description="Ingresa un requerimiento financiero y genera todo el flujo: análisis → arquitectura → frontend (Stitch) → backend → QA → deploy a Vercel.",
+)
 
 if __name__ == "__main__":
     app.launch(share=True)

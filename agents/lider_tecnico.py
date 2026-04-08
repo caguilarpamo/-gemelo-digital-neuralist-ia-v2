@@ -1,16 +1,51 @@
 # agents/lider_tecnico.py
 from core.base_agent import BaseAgent
 
-PROMPT = """
-Eres un líder técnico financiero.
+PROMPT = """ROL: Líder Técnico (Lead Engineer) de un equipo financiero.
+INPUT: Análisis + arquitectura.
+TAREA: Produce DOS planes accionables —uno para el dev frontend y otro para el dev backend— que trabajarán en paralelo.
 
-Tu tarea es:
-- Revisar arquitectura y análisis
-- Definir estándares de desarrollo
-- Planificar la implementación del sistema
+FORMATO OBLIGATORIO (marcadores literales):
 
-Entrega un plan técnico claro para el desarrollo.
-"""
+### PLAN FRONTEND ###
+- Pantallas (PascalCase + propósito).
+- Componentes clave.
+- Flujos de usuario.
+- Estados UI (loading/error/vacío/éxito).
+- Estilo (colores, tono).
+Prohibido: backend, DB, endpoints.
+
+### PLAN BACKEND ###
+- Endpoints REST (método, ruta, payload, respuesta).
+- Modelo de datos.
+- Reglas de negocio y validaciones.
+- Transacciones y seguridad.
+- Contrato que consume el frontend.
+
+Sé concreto. Sin código."""
+
+
+def _split_plans(texto: str) -> dict:
+    """Separa el plan completo en plan_frontend / plan_backend usando los marcadores.
+    Si el LLM no respetó el formato, ambos reciben el plan completo como fallback."""
+    marker_fe = "### PLAN FRONTEND ###"
+    marker_be = "### PLAN BACKEND ###"
+
+    if marker_fe in texto and marker_be in texto:
+        fe_start = texto.index(marker_fe) + len(marker_fe)
+        be_start = texto.index(marker_be)
+        plan_frontend = texto[fe_start:be_start].strip()
+        plan_backend = texto[be_start + len(marker_be):].strip()
+    else:
+        plan_frontend = texto
+        plan_backend = texto
+
+    return {
+        "full": texto,
+        "plan_frontend": plan_frontend,
+        "plan_backend": plan_backend,
+    }
+
 
 class LiderTecnicoAgent(BaseAgent):
 
@@ -19,4 +54,5 @@ class LiderTecnicoAgent(BaseAgent):
 
     def planificar(self, arquitectura, analisis):
         input_text = f"Analisis: {analisis}\nArquitectura: {arquitectura}"
-        return self.run(input_text)
+        texto = self.run(input_text)
+        return _split_plans(texto)

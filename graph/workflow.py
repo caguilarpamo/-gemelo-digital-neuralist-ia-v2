@@ -41,6 +41,7 @@ from agents.requerimientos import RequerimientosAgent
 from agents.analista import AnalistaAgent
 from agents.arquitecto import ArquitectoAgent
 from agents.lider_tecnico import LiderTecnicoAgent
+from agents.desarrollador_frontend import DesarrolladorFrontEndAgent
 from agents.dev import DevAgent
 from agents.qa1 import QA1Agent
 from agents.qa2 import QA2Agent
@@ -54,6 +55,7 @@ requerimientos = RequerimientosAgent()
 analista = AnalistaAgent()
 arquitecto = ArquitectoAgent()
 lider = LiderTecnicoAgent()
+frontend_dev = DesarrolladorFrontEndAgent()
 dev = DevAgent()
 qa1 = QA1Agent()
 qa2 = QA2Agent()
@@ -81,29 +83,33 @@ def ejecutar_flujo(requerimiento):
     arquitectura = arquitecto.run(analisis)
     print("✅ Arquitectura generada")
 
-    # 4. Líder Técnico
+    # 4. Líder Técnico -> emite DOS planes: frontend y backend
     plan_tecnico = lider.planificar(arquitectura, analisis)
-    print("✅ Plan técnico generado")
+    print("✅ Plan técnico generado (frontend + backend)")
 
-    # 5. Desarrollo
-    codigo = dev.run(plan_tecnico)
-    print("✅ Código generado")
+    # 5a. Desarrollador Frontend (Stitch MCP -> React)
+    frontend_output = frontend_dev.run(plan_tecnico["plan_frontend"])
+    print("✅ Frontend generado vía Stitch")
+
+    # 5b. Desarrollador Backend (recibe plan_backend + contexto del frontend ya construido)
+    codigo = dev.run(plan_tecnico["plan_backend"], frontend_output)
+    print("✅ Código backend generado e integrado con el frontend")
 
     # 6. QA1
     qa1_reporte = qa1.validar(codigo, analisis)
     print("✅ QA1 completado")
 
-    # 7. QA2
-    qa2_reporte = qa2.probar(codigo)
-    print("✅ QA2 completado")
+    # 7. QA2 (funcional + usabilidad Nielsen sobre frontend + backend)
+    qa2_reporte = qa2.probar(codigo, frontend_output)
+    print("✅ QA2 completado (funcional + Nielsen)")
 
     # 8. Documentador
     doc = documentador.generar_doc(analisis, arquitectura, codigo, qa1_reporte, qa2_reporte)
     print("✅ Documentación generada")
 
-    # 9. Despliegue
-    scripts = despliegue.generar_scripts(codigo)
-    print("✅ Scripts de despliegue generados")
+    # 9. Despliegue automático a Vercel (sitio estático desde output/stitch/)
+    scripts = despliegue.desplegar(frontend_output)
+    print("✅ Deploy a Vercel completado")
 
     # 10. Entregable final
     paquete = entregable.generar_entregable(doc, scripts)
@@ -113,7 +119,10 @@ def ejecutar_flujo(requerimiento):
         "historias": historias,
         "analisis": analisis,
         "arquitectura": arquitectura,
-        "plan_tecnico": plan_tecnico,
+        "plan_tecnico": plan_tecnico["full"],
+        "plan_frontend": plan_tecnico["plan_frontend"],
+        "plan_backend": plan_tecnico["plan_backend"],
+        "frontend": frontend_output,
         "codigo": codigo,
         "qa1": qa1_reporte,
         "qa2": qa2_reporte,

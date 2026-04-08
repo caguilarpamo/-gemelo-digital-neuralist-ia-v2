@@ -22,8 +22,22 @@ def main():
         print("\n🏗️ ARQUITECTURA:\n")
         print(resultado["arquitectura"])
 
-        print("\n💻 CODIGO:\n")
+        print("\n🎨 FRONTEND (Stitch → React):\n")
+        print(resultado["frontend"])
+
+        print("\n💻 CODIGO BACKEND:\n")
         print(resultado["codigo"])
+
+        print("\n🚀 DESPLIEGUE:\n")
+        print(resultado["despliegue"])
+
+        # Destacar URL final al usuario
+        import re
+        match = re.search(r"https?://[^\s\)]+", resultado["despliegue"] or "")
+        if match:
+            print("\n" + "=" * 50)
+            print(f"🌐 TU APP ESTÁ LIVE EN: {match.group(0)}")
+            print("=" * 50)
 
     except Exception as e:
         print("\n❌ ERROR:", str(e))
