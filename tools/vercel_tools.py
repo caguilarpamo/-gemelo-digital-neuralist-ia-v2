@@ -3,15 +3,12 @@ Helper de alto nivel usado por DespliegueAgent para desplegar a Vercel
 el sitio estático generado por el agente frontend (output/stitch/*.html).
 """
 import asyncio
+import concurrent.futures
 from pathlib import Path
 from typing import Dict, List
 
-import nest_asyncio
-
 from config.settings import Settings
 from tools.vercel_client import VercelMCPClient
-
-nest_asyncio.apply()
 
 STITCH_DIR = Path("output/stitch")
 
@@ -49,14 +46,17 @@ def _build_index(screen_files: List[Path]) -> str:
 
 
 def _run(coro):
-    """Ejecuta una corrutina desde código sync (BaseAgent es sync)."""
+    """Ejecuta una corrutina desde código sync.
+    - Sin loop corriendo (CLI): asyncio.run directo.
+    - Con loop corriendo (Gradio/uvicorn): thread aislado con su propio loop.
+    Evita nest_asyncio, que rompe uvicorn en Python 3.13 (loop_factory kwarg).
+    """
     try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            return loop.run_until_complete(coro)
+        asyncio.get_running_loop()
     except RuntimeError:
-        pass
-    return asyncio.run(coro)
+        return asyncio.run(coro)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 def deploy_to_vercel(project_name: str = None) -> Dict:

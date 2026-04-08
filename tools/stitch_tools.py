@@ -1,10 +1,8 @@
 # tools/stitch_tools.py
 import asyncio
+import concurrent.futures
 import json
 from pathlib import Path
-
-import nest_asyncio
-nest_asyncio.apply()
 
 from langchain_core.tools import tool
 from langchain_core.prompts import PromptTemplate
@@ -15,6 +13,20 @@ from tools.stitch_client import StitchMCPClient
 
 def _get_client() -> StitchMCPClient:
     return StitchMCPClient()
+
+
+def _run_coro(coro):
+    """Ejecuta una corrutina desde código sync.
+    - Si no hay loop corriendo (CLI): usa asyncio.run directamente.
+    - Si hay loop corriendo (Gradio/FastAPI): la corre en un thread con loop aislado.
+    Evita nest_asyncio que monkey-patchea asyncio.run y rompe uvicorn en Python 3.13.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 @tool
@@ -32,7 +44,7 @@ def create_stitch_project(title: str) -> str:
             raise ValueError(f"Stitch create_project returned no project ID. Response: {project_data}")
         return project_id
 
-    return asyncio.run(_run())
+    return _run_coro(_run())
 
 
 @tool
@@ -64,7 +76,7 @@ def generate_screen(project_id: str, prompt: str, device_type: str = "DESKTOP") 
         except Exception as e:
             return f"Error extracting design content: {e}"
 
-    return asyncio.run(_run())
+    return _run_coro(_run())
 
 
 @tool
