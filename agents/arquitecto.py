@@ -1,17 +1,6 @@
 from core.base_agent import BaseAgent
 
-PROMPT = """
-Eres arquitecto de software financiero.
-
-Debes definir:
-
-1. Arquitectura
-2. Base de datos
-3. Seguridad
-4. Manejo de transacciones
-
-Usa buenas prácticas financieras.
-"""
+PROMPT = """Arquitecto financiero. Markdown con: capas (API/dominio/datos), esquema DB (tablas clave), seguridad (auth/cifrado/auditoría), transacciones ACID. Sin código."""
 
 class ArquitectoAgent(BaseAgent):
 

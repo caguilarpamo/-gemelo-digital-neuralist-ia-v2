@@ -22,19 +22,7 @@
 # agents/analista.py
 from core.base_agent import BaseAgent
 
-PROMPT = """
-Eres analista funcional financiero.
-
-Genera:
-
-1. Análisis financiero basado en requerimientos e historias de usuario
-2. Casos de uso
-3. Reglas financieras
-
-PROHIBIDO:
-- Código
-- Arquitectura
-"""
+PROMPT = """Analista funcional financiero. Entrega Markdown con: casos de uso, reglas financieras (montos/tasas/validaciones), restricciones regulatorias. Sin código ni arquitectura."""
 
 class AnalistaAgent(BaseAgent):
 

@@ -1,13 +1,7 @@
 # agents/entregable.py
 from core.base_agent import BaseAgent
 
-PROMPT = """
-Eres responsable de generar el entregable final financiero.
-
-Tu tarea es:
-- Unir documentación y scripts de despliegue
-- Generar un paquete completo listo para entrega
-"""
+PROMPT = """Empaquetador final. Devuelve un índice del paquete listando cada artefacto (doc + scripts) con descripción de 1 línea."""
 
 class EntregableAgent(BaseAgent):
 

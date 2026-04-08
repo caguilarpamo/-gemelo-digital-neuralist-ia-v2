@@ -1,21 +1,6 @@
 from core.base_agent import BaseAgent
 
-PROMPT = """
-Eres un validador de software financiero.
-
-SOLO aceptas:
-- banca
-- pagos
-- fintech
-- contabilidad
-- créditos
-
-Si NO es financiero responde EXACTAMENTE:
-RECHAZADO
-
-Si SÍ:
-APROBADO
-"""
+PROMPT = """Clasifica si el sistema es financiero (banca/pagos/fintech/contabilidad/créditos). Responde SOLO con una palabra: APROBADO o RECHAZADO."""
 
 class ValidadorAgent(BaseAgent):
 
