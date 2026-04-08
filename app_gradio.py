@@ -66,6 +66,7 @@ import re
 from pathlib import Path
 
 import gradio as gr
+from dotenv import load_dotenv
 from graph.workflow import ejecutar_flujo
 
 STITCH_DIR = Path("output/stitch")
