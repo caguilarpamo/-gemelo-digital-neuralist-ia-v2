@@ -72,11 +72,14 @@ def save_and_convert_to_react(html_content: str, screen_name: str) -> str:
     """Save HTML from Stitch locally and convert it to a React functional component using JSX + Tailwind CSS."""
     safe_name = Path(screen_name).name  # strips directory separators
 
-    # Save raw HTML
+    # Save raw HTML (sin truncar — el archivo en disco queda completo)
     stitch_dir = Path("output/stitch")
     stitch_dir.mkdir(parents=True, exist_ok=True)
     html_path = stitch_dir / f"{safe_name}.html"
     html_path.write_text(html_content, encoding="utf-8")
+
+    # Truncar para la conversión LLM (control de rate limit: 50K tokens/min)
+    html_for_llm = html_content[:3000]
 
     # Convert to React via LLM
     llm = get_llm()
@@ -95,7 +98,7 @@ HTML/Design:
 """
     )
     chain = prompt | llm
-    result = chain.invoke({"component_name": safe_name, "html_content": html_content})
+    result = chain.invoke({"component_name": safe_name, "html_content": html_for_llm})
     jsx_content = result.content if hasattr(result, "content") else str(result)
 
     # Save React component
