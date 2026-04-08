@@ -109,9 +109,9 @@ def ejecutar_flujo(requerimiento):
     doc = documentador.generar_doc(analisis, arquitectura, codigo, qa1_reporte, qa2_reporte)
     print("✅ Documentación generada")
 
-    # 9. Despliegue automático a Vercel (sitio estático desde output/stitch/)
-    scripts = despliegue.desplegar(frontend_output)
-    print("✅ Deploy a Vercel completado")
+    # 9. Despliegue automático a Vercel — frontend (React+Tailwind) + backend (serverless Python)
+    scripts = despliegue.desplegar(frontend_output, codigo)
+    print("✅ Deploy a Vercel completado (frontend + backend)")
 
     # 10. Entregable final
     paquete = entregable.generar_entregable(doc, scripts)
