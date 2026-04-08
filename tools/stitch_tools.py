@@ -1,10 +1,8 @@
 # tools/stitch_tools.py
 import asyncio
+import concurrent.futures
 import json
 from pathlib import Path
-
-import nest_asyncio
-nest_asyncio.apply()
 
 from langchain_core.tools import tool
 from langchain_core.prompts import PromptTemplate
@@ -15,6 +13,20 @@ from tools.stitch_client import StitchMCPClient
 
 def _get_client() -> StitchMCPClient:
     return StitchMCPClient()
+
+
+def _run_coro(coro):
+    """Ejecuta una corrutina desde código sync.
+    - Si no hay loop corriendo (CLI): usa asyncio.run directamente.
+    - Si hay loop corriendo (Gradio/FastAPI): la corre en un thread con loop aislado.
+    Evita nest_asyncio que monkey-patchea asyncio.run y rompe uvicorn en Python 3.13.
+    """
+    try:
+        asyncio.get_running_loop()
+    except RuntimeError:
+        return asyncio.run(coro)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+        return pool.submit(asyncio.run, coro).result()
 
 
 @tool
@@ -32,7 +44,7 @@ def create_stitch_project(title: str) -> str:
             raise ValueError(f"Stitch create_project returned no project ID. Response: {project_data}")
         return project_id
 
-    return asyncio.run(_run())
+    return _run_coro(_run())
 
 
 @tool
@@ -64,7 +76,7 @@ def generate_screen(project_id: str, prompt: str, device_type: str = "DESKTOP") 
         except Exception as e:
             return f"Error extracting design content: {e}"
 
-    return asyncio.run(_run())
+    return _run_coro(_run())
 
 
 @tool
@@ -72,11 +84,14 @@ def save_and_convert_to_react(html_content: str, screen_name: str) -> str:
     """Save HTML from Stitch locally and convert it to a React functional component using JSX + Tailwind CSS."""
     safe_name = Path(screen_name).name  # strips directory separators
 
-    # Save raw HTML
+    # Save raw HTML (sin truncar — el archivo en disco queda completo)
     stitch_dir = Path("output/stitch")
     stitch_dir.mkdir(parents=True, exist_ok=True)
     html_path = stitch_dir / f"{safe_name}.html"
     html_path.write_text(html_content, encoding="utf-8")
+
+    # Truncar para la conversión LLM (control de rate limit: 50K tokens/min)
+    html_for_llm = html_content[:3000]
 
     # Convert to React via LLM
     llm = get_llm()
@@ -95,7 +110,7 @@ HTML/Design:
 """
     )
     chain = prompt | llm
-    result = chain.invoke({"component_name": safe_name, "html_content": html_content})
+    result = chain.invoke({"component_name": safe_name, "html_content": html_for_llm})
     jsx_content = result.content if hasattr(result, "content") else str(result)
 
     # Save React component

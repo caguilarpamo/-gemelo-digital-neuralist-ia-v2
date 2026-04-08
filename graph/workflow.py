@@ -88,7 +88,9 @@ def ejecutar_flujo(requerimiento):
     print("✅ Plan técnico generado (frontend + backend)")
 
     # 5a. Desarrollador Frontend (Stitch MCP -> React)
-    frontend_output = frontend_dev.run(plan_tecnico["plan_frontend"])
+    # Truncamos el plan a 2000 chars para mantenernos bajo el rate limit (50K tokens/min en Haiku 4.5)
+    plan_fe_short = plan_tecnico["plan_frontend"][:2000]
+    frontend_output = frontend_dev.run(plan_fe_short)
     print("✅ Frontend generado vía Stitch")
 
     # 5b. Desarrollador Backend (recibe plan_backend + contexto del frontend ya construido)
@@ -107,9 +109,9 @@ def ejecutar_flujo(requerimiento):
     doc = documentador.generar_doc(analisis, arquitectura, codigo, qa1_reporte, qa2_reporte)
     print("✅ Documentación generada")
 
-    # 9. Despliegue automático a Vercel (sitio estático desde output/stitch/)
-    scripts = despliegue.desplegar(frontend_output)
-    print("✅ Deploy a Vercel completado")
+    # 9. Despliegue automático a Vercel — frontend (React+Tailwind) + backend (serverless Python)
+    scripts = despliegue.desplegar(frontend_output, codigo)
+    print("✅ Deploy a Vercel completado (frontend + backend)")
 
     # 10. Entregable final
     paquete = entregable.generar_entregable(doc, scripts)

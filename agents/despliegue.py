@@ -21,10 +21,11 @@ class DespliegueAgent(BaseAgent):
     def __init__(self):
         super().__init__("Despliegue", PROMPT, temperature=0.0)
 
-    def desplegar(self, frontend_output: str = "") -> str:
-        """Ejecuta el deploy y devuelve un reporte Markdown con la URL pública."""
-        print("   🚀 Iniciando deploy automático a Vercel...")
-        result = deploy_to_vercel()
+    def desplegar(self, frontend_output: str = "", codigo: str = "") -> str:
+        """Ejecuta el deploy completo (frontend + backend) y devuelve un reporte
+        Markdown con la URL pública."""
+        print("   🚀 Iniciando deploy automático a Vercel (frontend + backend)...")
+        result = deploy_to_vercel(codigo=codigo)
 
         url = result.get("url")
         files = result.get("files", [])
@@ -61,4 +62,4 @@ class DespliegueAgent(BaseAgent):
 
     # Alias de compatibilidad por si algún otro punto del código llama al nombre viejo.
     def generar_scripts(self, codigo="", frontend_output=""):
-        return self.desplegar(frontend_output)
+        return self.desplegar(frontend_output, codigo)
