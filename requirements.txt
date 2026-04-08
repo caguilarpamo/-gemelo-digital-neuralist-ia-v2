@@ -6,5 +6,8 @@ anthropic>=0.34.0
 python-dotenv
 pytest
 numpy==1.26.4
+fastapi
+uvicorn
+pydantic
 nest_asyncio>=1.6.0
 httpx>=0.28.0
